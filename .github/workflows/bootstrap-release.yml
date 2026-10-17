@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
     paths:
-      - '.bundle/source.br64'
       - '.github/workflows/bootstrap-release.yml'
   workflow_dispatch:
 
@@ -12,53 +11,17 @@ permissions:
   contents: write
 
 jobs:
-  restore-source:
-    name: Restore Foldria source
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Expand verified source archive
-        shell: bash
-        run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const zlib = require('node:zlib');
-          const encoded = fs.readFileSync('.bundle/source.br64', 'utf8').replace(/\s/g, '');
-          const archive = zlib.brotliDecompressSync(Buffer.from(encoded, 'base64'));
-          fs.writeFileSync('/tmp/foldria-source.tar', archive);
-          NODE
-          tar -xf /tmp/foldria-source.tar
-          rm -rf .bundle
-          mkdir -p docs
-          mv .github/workflows/release.yml docs/RELEASE-WORKFLOW.template.yml
-
-      - name: Commit full project files
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m "feat: add complete Foldria Windows desktop project"
-            git push origin HEAD:main
-          fi
-
   windows-release:
-    name: Build Windows installer and portable EXE
-    needs: restore-source
+    name: Windows x64 - Installer and Portable
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout completed project
+      - name: Checkout full Foldria project
         uses: actions/checkout@v4
         with:
           ref: main
 
-      - name: Use Node.js 22
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -66,15 +29,15 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Run core tests
+      - name: Run 8 core tests
         run: npm test
 
-      - name: Build Windows x64 binaries
+      - name: Build Windows installer and portable executable
         run: npm run dist:win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
-      - name: Generate SHA256SUMS
+      - name: Generate SHA-256 checksums
         shell: pwsh
         run: |
           Get-ChildItem -Path dist -Filter '*.exe' | Sort-Object Name | ForEach-Object {
@@ -82,7 +45,7 @@ jobs:
             "$hash  $($_.Name)"
           } | Set-Content -Path dist/SHA256SUMS.txt -Encoding ascii
 
-      - name: Upload build artifacts
+      - name: Save Windows build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Foldria-Windows-x64
@@ -91,7 +54,7 @@ jobs:
             dist/*.exe
             dist/SHA256SUMS.txt
 
-      - name: Publish version v0.1.0
+      - name: Create and publish release v0.1.0
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.1.0
