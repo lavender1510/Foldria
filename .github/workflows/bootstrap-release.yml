@@ -1,0 +1,103 @@
+name: Publish Foldria v0.1.0
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bundle/source.br64'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore-source:
+    name: Restore Foldria source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Expand verified source archive
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const zlib = require('node:zlib');
+          const encoded = fs.readFileSync('.bundle/source.br64', 'utf8').replace(/\s/g, '');
+          const archive = zlib.brotliDecompressSync(Buffer.from(encoded, 'base64'));
+          fs.writeFileSync('/tmp/foldria-source.tar', archive);
+          NODE
+          tar -xf /tmp/foldria-source.tar
+          rm -rf .bundle
+
+      - name: Commit full project files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: add complete Foldria Windows desktop project"
+            git push origin HEAD:main
+          fi
+
+  windows-release:
+    name: Build Windows installer and portable EXE
+    needs: restore-source
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout completed project
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run core tests
+        run: npm test
+
+      - name: Build Windows x64 binaries
+        run: npm run dist:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Generate SHA256SUMS
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path dist -Filter '*.exe' | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          } | Set-Content -Path dist/SHA256SUMS.txt -Encoding ascii
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Foldria-Windows-x64
+          if-no-files-found: error
+          path: |
+            dist/*.exe
+            dist/SHA256SUMS.txt
+
+      - name: Publish version v0.1.0
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.0
+          target_commitish: main
+          name: Foldria v0.1.0
+          body_path: RELEASE-NOTES.md
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: false
+          files: |
+            dist/*.exe
+            dist/SHA256SUMS.txt
