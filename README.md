@@ -9,7 +9,7 @@
 ---
 
 > [!NOTE]
-> **Foldria v0.1.0 – Name freigegeben.** Das Projekt wurde vorbereitet, aber ein GitHub-Release ist erst verfügbar, nachdem der Windows-Build in GitHub Actions erfolgreich abgeschlossen wurde.
+> **Foldria v0.1.0 ist veröffentlicht.** Windows-Installer, portable EXE und SHA-256-Prüfsummen stehen unter [Releases](https://github.com/lavender1510/Foldria/releases/tag/v0.1.0) bereit.
 
 ## Features
 
@@ -90,7 +90,7 @@ npm test
 npm start
 ```
 
-`src/core` ist unabhängig von Electron mit Node-Testfällen prüfbar. Ein GitHub-Actions-Workflow baut unter Windows Installer und portable EXE; ein Release wird nur durch das Pushen eines Tags `v*` ausgelöst. Der Workflow ist vorbereitet. Er läuft erst nach Push des Tags in ein freigeschaltetes GitHub-Repository. Die Release-Artefakte sind derzeit noch nicht verifiziert.
+`src/core` ist unabhängig von Electron mit Node-Testfällen prüfbar. Ein GitHub-Actions-Workflow baut unter Windows Installer und portable EXE; ein Release wird nur durch das Pushen eines Tags `v*` ausgelöst. Der Workflow ist eingerichtet. Windows-Build, acht Tests und die Veröffentlichung von `v0.1.0` wurden in GitHub Actions erfolgreich durchgeführt. Für weitere Veröffentlichungen kann ein neuer `v*`-Tag gepusht werden.
 
 ## Lizenz
 
