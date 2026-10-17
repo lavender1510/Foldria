@@ -1,0 +1,65 @@
+{
+  "name": "foldria",
+  "productName": "Foldria",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ein sicherer, moderner Datei-Sortierer für Windows mit Duplikat-Erkennung.",
+  "author": "lavender1510",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "dist:win": "electron-builder --win --x64",
+    "pack:win": "electron-builder --win dir --x64"
+  },
+  "devDependencies": {
+    "electron": "^37.3.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "dev.lyvt.foldria",
+    "productName": "Foldria",
+    "copyright": "Copyright © 2026 lavender1510",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "LICENSE"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": true
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Foldria",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Foldria-Setup-${version}-x64.${ext}"
+    },
+    "portable": {
+      "artifactName": "Foldria-Portable-${version}-x64.${ext}"
+    }
+  }
+}
