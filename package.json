@@ -11,7 +11,7 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test",
-    "dist:win": "electron-builder --win --x64",
+    "dist:win": "electron-builder --win --x64 --publish never",
     "pack:win": "electron-builder --win dir --x64"
   },
   "devDependencies": {
