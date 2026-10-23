@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { DEFAULT_RULES, cleanRules } from './rules.js';
 
 export function defaults() {
-  return { source: '', destination: '', sameFolder: true, recursive: false, theme: 'dark', rules: structuredClone(DEFAULT_RULES) };
+  return { source: '', destination: '', sameFolder: true, recursive: false, theme: 'dark', duplicateWorkers: 4, rules: structuredClone(DEFAULT_RULES) };
 }
 export class Storage {
   constructor(directory) { this.dir = directory; this.settingsPath = path.join(directory, 'settings.json'); this.historyPath = path.join(directory, 'history.json'); }
@@ -18,7 +18,7 @@ export class Storage {
   async getSettings() { const current = await this.readJson(this.settingsPath, defaults()); return { ...defaults(), ...current, rules: cleanRules(current.rules || DEFAULT_RULES) }; }
   async setSettings(value) {
     const existing = await this.getSettings();
-    const safe = { ...existing, source: String(value.source || '').slice(0, 2000), destination: String(value.destination || '').slice(0, 2000), sameFolder: !!value.sameFolder, recursive: !!value.recursive, theme: value.theme === 'light' ? 'light' : 'dark', rules: cleanRules(value.rules) };
+    const safe = { ...existing, source: String(value.source || '').slice(0, 2000), destination: String(value.destination || '').slice(0, 2000), sameFolder: !!value.sameFolder, recursive: !!value.recursive, theme: value.theme === 'light' ? 'light' : 'dark', duplicateWorkers: Math.max(1, Math.min(8, Math.trunc(Number(value.duplicateWorkers)) || 4)), rules: cleanRules(value.rules) };
     await this.writeJson(this.settingsPath, safe); return safe;
   }
   async history() { return this.readJson(this.historyPath, []); }

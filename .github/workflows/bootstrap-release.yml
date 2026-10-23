@@ -1,4 +1,4 @@
-name: Publish Foldria v0.1.0
+name: Publish Foldria v0.2.0
 
 on:
   push:
@@ -10,33 +10,36 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: foldria-release-v0.2.0
+  cancel-in-progress: false
+
 jobs:
   windows-release:
     name: Windows x64 - Installer and Portable
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
-      - name: Checkout full Foldria project
+      - name: Checkout Foldria
         uses: actions/checkout@v4
         with:
           ref: main
-
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-
-      - name: Run 8 core tests
+      - name: Run core tests
         run: npm test
-
+      - name: Test 40,000+ file scan
+        run: npm run test:large
+        env:
+          FOLDRIA_LARGE_TEST: '1'
       - name: Build Windows installer and portable executable
         run: npm run dist:win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-
       - name: Generate SHA-256 checksums
         shell: pwsh
         run: |
@@ -44,22 +47,20 @@ jobs:
             $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $($_.Name)"
           } | Set-Content -Path dist/SHA256SUMS.txt -Encoding ascii
-
-      - name: Save Windows build artifacts
+      - name: Upload Windows build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Foldria-Windows-x64
+          name: Foldria-Windows-v0.2.0-x64
           if-no-files-found: error
           path: |
             dist/*.exe
             dist/SHA256SUMS.txt
-
-      - name: Create and publish release v0.1.0
+      - name: Publish GitHub release v0.2.0
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0
+          tag_name: v0.2.0
           target_commitish: main
-          name: Foldria v0.1.0
+          name: Foldria v0.2.0 — Large Folder Scans
           body_path: RELEASE-NOTES.md
           fail_on_unmatched_files: true
           draft: false

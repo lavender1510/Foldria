@@ -7,7 +7,7 @@ import { createPreview, runPreview, undoRun } from './core/organizer.js';
 import { findDuplicates, checkTrashSelection, revalidateDuplicate } from './core/duplicates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-let mainWindow; let storage; let previewCache = null; let duplicatesCache = null; let busy = false;
+let mainWindow; let storage; let previewCache = null; let duplicatesCache = null; let busy = false; let duplicateController = null;
 function sendProgress(info) { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('task:progress', info); }
 async function task(callback) {
   if (busy) throw new Error('Es läuft bereits ein Vorgang.');
@@ -39,12 +39,21 @@ function registerHandlers() {
   ipcMain.handle('duplicates:scan', async () => task(async () => {
     const s = await storage.getSettings();
     if (!s.source) throw new Error('Bitte zuerst einen Quellordner auswählen.');
-    duplicatesCache = await findDuplicates(s.source, { onProgress: sendProgress });
-    return duplicatesCache;
+    duplicateController = new AbortController();
+    duplicatesCache = null;
+    try {
+      duplicatesCache = await findDuplicates(s.source, { onProgress: sendProgress, signal: duplicateController.signal, concurrency: s.duplicateWorkers });
+      return duplicatesCache;
+    } finally { duplicateController = null; }
   }));
+  ipcMain.handle('duplicates:cancel', () => {
+    if (!duplicateController) return false;
+    duplicateController.abort();
+    return true;
+  });
   ipcMain.handle('duplicates:trash', async (_event, scanId, fileIds) => task(async () => {
     if (!duplicatesCache || duplicatesCache.scanId !== scanId) throw new Error('Duplikatsuche ist nicht mehr aktuell.');
-    if (!Array.isArray(fileIds) || fileIds.length > 40000) throw new Error('Ungültige Dateiauswahl.');
+    if (!Array.isArray(fileIds) || fileIds.length > 250000) throw new Error('Ungültige Dateiauswahl.');
     const chosen = checkTrashSelection(duplicatesCache, fileIds);
     const selected = new Set(fileIds);
     const allowedIds = new Set();
@@ -107,7 +116,7 @@ function registerHandlers() {
 }
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1320, height: 860, minWidth: 1020, minHeight: 680, backgroundColor: '#0a0d15', title: 'Foldria', show: false,
+    width: 1320, height: 860, minWidth: 1020, minHeight: 680, backgroundColor: '#191d21', title: 'Foldria', show: false,
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true }
   });
@@ -115,5 +124,5 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 }
-app.whenReady().then(() => { nativeTheme.themeSource = 'dark'; storage = new Storage(app.getPath('userData')); registerHandlers(); createWindow(); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); }); });
+app.whenReady().then(() => { nativeTheme.themeSource = 'system'; storage = new Storage(app.getPath('userData')); registerHandlers(); createWindow(); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); }); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

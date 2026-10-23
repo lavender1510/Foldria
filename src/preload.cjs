@@ -1,5 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const channels = new Set(['folders:select', 'settings:get', 'settings:save', 'preview:create', 'sort:run', 'duplicates:scan', 'duplicates:trash', 'history:list', 'history:undo', 'file:reveal', 'report:save']);
+const channels = new Set(['folders:select', 'settings:get', 'settings:save', 'preview:create', 'sort:run', 'duplicates:scan', 'duplicates:cancel', 'duplicates:trash', 'history:list', 'history:undo', 'file:reveal', 'report:save']);
 contextBridge.exposeInMainWorld('foldria', {
   invoke: (channel, ...args) => {
     if (!channels.has(channel)) throw new Error('Nicht erlaubte Aktion.');
