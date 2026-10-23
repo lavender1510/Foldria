@@ -68,3 +68,5 @@ jobs:
           files: |
             dist/*.exe
             dist/SHA256SUMS.txt
+
+# Ensure the packaged renderer uses the fixed duplicate-navigation counter.

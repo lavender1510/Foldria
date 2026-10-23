@@ -39,3 +39,13 @@ test('scans more than 40,000 files and finds an exact matching pair', { skip: pr
   assert.equal(result.errors, 0);
   assert.ok(events.some(p => p.phase === 'scan'));
 }));
+
+
+test('renderer selectors match real DOM elements', async () => {
+  const html = await fs.readFile(new URL('../src/ui/index.html', import.meta.url), 'utf8');
+  const script = await fs.readFile(new URL('../src/ui/app.js', import.meta.url), 'utf8');
+  const ids = new Set([...html.matchAll(/id="([^"]+)"/g)].map(m => m[1]));
+  const dynamicRuleForm = new Set(['ruleName', 'ruleFolder', 'ruleExtensions']);
+  const missing = [...script.matchAll(/\$\('([^']+)'\)/g)].map(m => m[1]).filter(id => !ids.has(id) && !dynamicRuleForm.has(id));
+  assert.deepEqual(missing, []);
+});
