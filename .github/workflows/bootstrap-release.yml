@@ -70,3 +70,5 @@ jobs:
             dist/SHA256SUMS.txt
 
 # Ensure the packaged renderer uses the fixed duplicate-navigation counter.
+
+# electron-builder publishing disabled; softprops/action-gh-release handles the release.
